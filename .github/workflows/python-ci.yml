@@ -1,0 +1,58 @@
+# 1. Nome do Workflow
+name: Pipeline CI de Python
+
+# 2. Evento Gatilho
+# O pipeline será executado quando houver um 'push' ou 'pull_request'
+# nas branches 'main' e 'develop'.
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  # Permite rodar o workflow manualmente pela interface do GitHub
+  workflow_dispatch:
+
+# 3. Definição dos Jobs (Etapas do Pipeline)
+jobs:
+  # Job 1: Build & Test (Etapa de Compilação e Teste - Combinadas)
+  # Em projetos Python, o "build" geralmente é instalar as dependências.
+  build_and_test:
+    # Define o ambiente em que o job será executado. Ubuntu é o padrão.
+    runs-on: ubuntu-latest
+
+    # Estratégia de matriz para rodar em múltiplas versões de Python
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"] # Testaremos em 3.10 e 3.11
+
+    # 4. Sequência de Steps (Passos)
+    steps:
+      # Passo 1: Checkout do Código
+      - name: Checkout do Repositório
+        # Action oficial para baixar o código no ambiente
+        uses: actions/checkout@v4
+
+      # Passo 2: Configuração do Python
+      - name: Configura Python ${{ matrix.python-version }}
+        # Action para configurar a versão do Python no ambiente
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # PASSO DA ETAPA DE "BUILD" (Instalação de Dependências)
+      - name: Instala Dependências (Etapa de Build/Compilação)
+        run: |
+          # Instala dependências do requirements.txt
+          pip install -r requirements.txt
+
+      # PASSO DA ETAPA DE "TESTE UNITÁRIO"
+      - name: Executa Testes Unitários com Pytest
+        run: |
+          # Executa os testes unitários. Se algum falhar, o job falha.
+          pytest
+
+      # Exemplo de Etapa Opcional (após o teste)
+      - name: Exemplo de Mensagem de Sucesso
+        # Só será executado se os passos anteriores forem bem-sucedidos.
+        if: success()
+        run: echo "Build e Testes Concluídos com Sucesso no Python ${{ matrix.python-version }}!"
